@@ -1,0 +1,270 @@
+﻿@{
+    ViewBag.Title = "Datatable";
+}
+
+
+@section styles{
+<link href="~/Content/css/bootstrap.min.css" rel="stylesheet" />
+<link href="~/Content/css/jquery.dataTables.css" rel="stylesheet" />
+    }
+
+<!--Style for switch to grid view customise it and put in a seperate css file-->
+<style>
+    table#dvGrid  > tbody > tr{
+        width: 23%;
+          float: left;
+          border: 1px solid lightgrey;
+          margin-right: 10%;
+          margin-bottom:10%;
+        }
+     table#dvGrid  > tbody > tr > td{
+        display:block;
+        }
+    
+</style>
+
+<div class="container">
+    <h2>Datatable</h2>
+    <div class="row">
+
+        <div id="wrapTemplate">
+            <!--Check which template to show by comparing the value of observable-->
+            <div data-bind="if:vm.SelectedTemplate() == 'divTable'">
+                <table id="dvTable" class="table tblProductsList"
+                       data-bind="dataTable: {
+                                        dataSource:vm.dataSource,
+                                        rowTemplate: vm.CurrentTemplate,
+                                        ordering:false,
+                                        bAutoWidth : false,
+                                            info:false,
+                                        //provide data binding and optional sorting option for each column
+                                        columns: [
+                                               {data: 'Id', bSortable: true },
+                                               {data: 'Name', bSortable: true },
+                                               {data: 'Address', bSortable: false }
+
+                                                ],
+
+                                        options: {
+                                            sPaginationType: 'bootstrap',
+                                            bAutoWidth: 'false',
+
+                                            oLanguage: {
+                                                sLengthMenu: '_MENU_Deals Per Page<br>'
+                                            }
+                                           }
+                                           }">
+                    <thead>
+                        <tr>
+                            <th class="text-center  tblClass">Id</th>
+                            <th class="text-left">Name</th>
+                            <th class="text-left  hidden-xs tblClass">Address</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+               
+            </div>
+
+            <div data-bind="if:vm.SelectedTemplate() == 'divGrid'">
+                <table id="dvGrid" class="table tblProductsList"
+                       data-bind="dataTable: {
+                                        dataSource:vm.dataSource,
+                                        rowTemplate:  vm.CurrentGridTemplate,
+                                        ordering:false,
+                                        bAutoWidth : false,
+                                            info:false,
+                                        columns: [
+                                               {data: 'Id', bSortable: true }
+
+                                                ],
+
+                                        options: {
+                                            sPaginationType: 'bootstrap',
+                                            bAutoWidth: 'false',
+
+                                            oLanguage: {
+                                                sLengthMenu: '_MENU_Deals Per Page<br>'
+                                            }
+                                           }
+                                           }">
+                    <thead>
+                        <tr>
+                            <th class="text-center  tblClass"></th>
+
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!--buttons to switch templates-->
+            <input type="button" value="List" class="btn" onclick="BindSelectedTemplate('dvTable')" />
+            <input type="button" value="Grid" class="btn" onclick="BindSelectedTemplate('dvGrid')" />
+
+        </div>
+    </div>
+</div>
+
+
+@section scripts{
+
+    <!--Knockout js file-->
+    <script src="~/Scripts/DatatableScripts/knockout-3.2.0.js"></script>
+    <script src="~/Scripts/DatatableScripts/knockout.mapping-latest.js"></script>
+
+    <!--basic data table files-->
+    <script src="~/Scripts/DatatableScripts/jquery.dataTables.min.js"></script>
+    <script src="~/Scripts/DatatableScripts/dataTables.bootstrap.js"></script>
+    
+    <!--Third party plugin for ko and data table integration-->
+    <script src="~/Scripts/DatatableScripts/cog.js"></script>
+    <script src="~/Scripts/DatatableScripts/cog.utils.js"></script>
+    <script src="~/Scripts/DatatableScripts/knockout.bindings.dataTables.js"></script>
+
+    <!--template for Table View-->
+    <script id="dealTableTemplate" type="text/html">
+        <td data-bind="text: Id "></td>
+        <td data-bind="text: Name"></td>
+        <td data-bind="text: Address"></td>
+        <td><button data-bind="click:vm.Edit">Edit</button></td>
+    </script>
+    <!--Edit Row template for table-->
+    <script id="dealEditTableTemplate" type="text/html">
+        <td><input data-bind="value: Id " /></td>
+        <td><input data-bind="value: Name " /></td>
+        <td><input data-bind="value: Address " /></td>
+        <td><button data-bind="click:vm.Save">Save</button></td>
+        <td><button data-bind="click:vm.Cancel">Cancel</button></td>
+    </script>
+
+    <!--template for Grid View-->
+    <script id="dealGridTemplate" type="text/html">
+        <td data-bind="text: Id "></td>
+        <td data-bind="text: Name "></td>
+        <td data-bind="text: Address "></td>
+        <td ><button data-bind="click:vm.Edit">Edit</button></td>
+
+    </script>
+      <!--Edit Row template for table-->
+    <script id="dealEditGridTemplate" type="text/html">
+        <td><input data-bind="value: Id " /></td>
+        <td><input data-bind="value: Name " /></td>
+        <td><input data-bind="value: Address " /></td>
+        <td><button data-bind="click:vm.Save">Save</button></td>
+        <td><button data-bind="click:vm.Cancel">Cancel</button></td>
+    </script>
+
+
+    <script>
+        //object to hold Knockout View Model
+        var vm = {};
+
+//you can put this closur eina seperate js file
+    (function (vm) {
+            
+            //Observable to decide which template to invoke
+            vm.SelectedTemplate = ko.observable('divTable');
+
+            //array type observable to hold table data
+            vm.DealModel = ko.observableArray([]);
+            vm.editTemplate = ko.observable();
+            var _tempRowData = {};
+
+        //make row editable by invoking edit template
+            vm.Edit = function (data) {
+                vm.editTemplate(data);
+                _tempRowData = ko.toJS(data);
+            }
+    
+        //resest row on Cancel using mapping plugin
+            vm.Cancel = function (data) {
+                ko.mapping.fromJS(_tempRowData, {}, data);
+                vm.editTemplate('');
+            }
+
+        //since it is observable data will be updated
+            vm.Save = function (data) {
+                //Write your AJAX call to save here
+                vm.editTemplate('');
+            }
+
+        //check to invoke editable table template
+            vm.CurrentTemplate = function (template) {
+                return template === vm.editTemplate() ? 'dealEditTableTemplate' : 'dealTableTemplate';
+            }
+
+        //check to invoke editable Grid template
+            vm.CurrentGridTemplate = function (template) {
+                return template === vm.editTemplate() ? 'dealEditGridTemplate' : 'dealGridTemplate';
+            }
+            //most important function that fetch the data for the data table
+            vm.dataSource = function (options, callback) {
+                console.log(options); //option object is the default configuration object for data table
+                var dataFormCollection = {
+                    GlobalSearchText: { value: "" },
+                    RecordsToTake: 0,
+                    RecordsToSkip: 0,
+                    Columns: {
+                        ColumnName: "",
+                        IsSorted: true,
+                        SortOrder: "asc",
+                        SearchText: "",
+                        IsSearchable: true,
+                        SortDirection: ""
+                    }
+                }
+
+                //map initial configuration options to custom object
+                dataFormCollection = options;
+                console.log(dataFormCollection);
+
+                $.ajax({
+                    url: "/Home/GetCollection",
+                    contentType: 'application/json; charset=utf-8',
+                    data: JSON.stringify(dataFormCollection),
+                    type: "POST",
+                    success: function (responseData, textStatus, jqXHR) {
+                        var result = {
+                            Data: responseData, //data to be bounf to the table
+                            TotalRecords: 100, //this should be returned in your result as total no of records that exists
+                            DisplayedRecords: responseData.length //total records been displayed
+                        }
+
+                        console.log(responseData);
+                        callback(result); //required by the plugin
+                    },
+                    error: function (responseData) {
+
+                        // HideLoadingProcess();
+
+                    }
+                });
+
+            };
+
+            ko.applyBindings(vm.DealModel, document.getElementById("wrapTemplate"));
+        })(vm)
+        
+        //binds list or grid view when clicked
+        function BindSelectedTemplate(arg) {
+            var table;
+
+            if (arg == "dvTable") {
+                vm.SelectedTemplate('divTable');
+                //ko custom handler defined in knockout.binding.dataTable.js
+                ko.bindingHandlers.dataTable.getDataTableInstance($("#dvTable table")[0]);
+
+            }
+            else {
+                vm.SelectedTemplate('divGrid');
+                //ko custom handler defined in knockout.binding.dataTable.js
+                ko.bindingHandlers.dataTable.getDataTableInstance($("#dvGrid table")[0]);
+
+            }
+
+        }
+
+
+    </script>
+}
